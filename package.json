@@ -9,6 +9,10 @@
     "dist"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Amomsin/koishi-plugin-dst-one.git"
+  },
   "keywords": [
     "chatbot",
     "koishi",
@@ -18,10 +22,11 @@
     "koishi": "^4.18.0"
   },
   "dependencies": {
-    "koishi-plugin-dst-one": "file:"
+    "koishi-plugin-dst-one": "file:",
+    "node-fetch": "^4.0.0"
   },
   "devDependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^4.0.0"
   },
   "koishi": {
     "preview": true,
