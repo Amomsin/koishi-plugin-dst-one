@@ -38,5 +38,8 @@
       ]
     }
   },
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  }
 }
