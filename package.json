@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-dst-one",
   "description": "饥荒服务器信息查询",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
