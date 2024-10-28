@@ -35,7 +35,7 @@ export function apply(ctx: Context, config: Config) {
     } catch (err) {
       console.error('定时任务执行失败:', err);
     }
-  }, 300000); // 30000 毫秒
+  }, 30000); // 30000 毫秒
 
   ctx.command('s-simple [name]', "查询饥荒联机服务器简略信息", { authority: config.Authority })
     .shortcut(/^\/查房 (.*)*$/, { args: ['$1'] })
