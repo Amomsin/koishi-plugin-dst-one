@@ -1,5 +1,6 @@
 import { Context } from 'koishi'
 import { Config } from '.'
+import { globalState } from '.'
 
 declare module 'koishi' {
     interface Tables {
@@ -39,11 +40,14 @@ export function extendDatabaseModel(ctx: Context) {
 // 数据库操作函数
 export async function createSimpleInfo(ctx: Context, data: SimpleInfo[]) {
     try {
-        await ctx.database.upsert('simpleInfo', data, 'rowId')
+        ctx.database.drop('simpleInfo')
+        extendDatabaseModel(ctx)
+        await ctx.database.upsert('simpleInfo', data)
         console.log('SimpleInfo 数据更新成功')
     } catch (err) {
         console.error('创建 SimpleInfo 数据失败:', err)
     }
+    globalState.isUpdating = false
 }
 
 export async function querySimpleInfo(ctx: Context, query: Partial<SimpleInfo>) {
@@ -66,10 +70,15 @@ export async function querySimpleInfo(ctx: Context, query: Partial<SimpleInfo>) 
 
 
 export async function getSimpleInfoAsync(ctx: Context, config: Config) {
+    globalState.isUpdating = true
     const result = []
     try {
         for (const region of config.DefaultRgion) {
             for (const platform of config.DefaultPlatform) {
+                // 仅当 platform 为 Rail 时处理 ap-east-1 区域
+                if (platform === 'Rail' && region !== 'ap-east-1') {
+                    continue;
+                }
                 const url = `https://lobby-v2-cdn.klei.com/${region}-${platform}.json.gz`
                 let response = await ctx.http.get(url)
                 if (response && Array.isArray(response.GET)) {
@@ -83,16 +92,17 @@ export async function getSimpleInfoAsync(ctx: Context, config: Config) {
                         version: item.v || 'N/A',
                         platform: item.platform || 'N/A'
                     }));
+                    console.log('获取数据成功:', url);
                     result.push(...resultTemp);
                 } else {
-                    console.error('Invalid data format:', response);
+                    console.error('Invalid data format:', url);
                 }
             }
         }
         // 保存到数据库
-        await createSimpleInfo(ctx, result)
+        createSimpleInfo(ctx, result);
     } catch (err) {
-        console.error('Failed to get SimpleInfo:', err)
+        console.error('Failed to get SimpleInfo:', err);
     }
     return '数据获取成功'
 }
@@ -132,11 +142,10 @@ export async function getDetailInfoAsync(ctx: Context, config: Config, rowId: st
                 };
             });
             const formattedInfo = resultTemp.map(formatMainInfo).join('\n');
-
             return formattedInfo
         } catch (err) {
-            console.error('Failed to get DetailInfo:', err)
-            return '获取详细信息失败'
+            // console.error('Failed to get DetailInfo:', url)
+            continue;
         }
     }
     return '未找到匹配的结果'
@@ -260,8 +269,12 @@ function formatMainInfo(data: any): string {
 }
 
 export async function getbyname(ctx: Context, name: string) {
-    const result = await querySimpleInfo(ctx, { name })
-    return formatResults(result)
+    if (!globalState.isUpdating) {
+        const result = await querySimpleInfo(ctx, { name })
+        return formatResults(result)
+    } else {
+        return '数据正在更新中，请稍后再试'
+    }
 }
 
 function checkNaN(value: number): number {

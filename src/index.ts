@@ -17,16 +17,21 @@ export interface Config {
   Instruction_id: any
 }
 
+// 定义锁标志
+export const globalState = {
+  isUpdating: false,
+}
+
 export const Config: Schema<Config> = Schema.object({
   Authority: Schema.number().default(1).description('权限等级'),
-  Interval: Schema.number().default(120000).description('任务间隔时间（毫秒）'),
+  Interval: Schema.number().default(300000).description('任务间隔时间（毫秒）'),
   Token: Schema.string().description('API Token').required(),
   DefaultRgion: Schema.array(Schema.union([
     Schema.const('ap-east-1').description('ap-east-1'),
     Schema.const('us-east-1').description('us-east-1'),
     Schema.const('eu-central-1').description('eu-central-1'),
     Schema.const('ap-southeast-1').description('ap-southeast-1'),
-  ])).role('table').default(["ap-east-1", "us-east-1"]).description('设置默认查询的游戏地区'),
+  ])).role('table').default(["ap-east-1", "us-east-1", "ap-southeast-1"]).description('设置默认查询的游戏地区'),
   DefaultPlatform: Schema.array(Schema.union([
     Schema.const('Steam').description('Steam'),
     Schema.const('Rail').description('WeGame'),
@@ -38,6 +43,8 @@ export const Config: Schema<Config> = Schema.object({
 export function apply(ctx: Context, config: Config) {
   // 扩展数据库模型
   extendDatabaseModel(ctx)
+  getSimpleInfoAsync(ctx, config)
+
   let IntervalId
   // 设置定时任务
   ctx.on('ready', async () => {
@@ -62,16 +69,16 @@ export function apply(ctx: Context, config: Config) {
   });
 
   config.Instruction_id.forEach((name: string) => {
-  ctx.command('s-detail [name]', "查询饥荒联机单个服务器详细信息", { authority: config.Authority })
-    .alias(name.replace('\\/', ''))
-    .action(async (Session, name) => {
-      try {
-        const send = await getDetailInfoAsync(ctx, config, name)
-        return send
-      } catch (error) {
-        return "请先查询再选择！"
-      }
-    })
+    ctx.command('s-detail [name]', "查询饥荒联机单个服务器详细信息", { authority: config.Authority })
+      .alias(name.replace('\\/', ''))
+      .action(async (Session, name) => {
+        try {
+          const send = await getDetailInfoAsync(ctx, config, name)
+          return send
+        } catch (error) {
+          return "请先查询再选择！"
+        }
+      })
   })
 
   // 示例函数，定时任务将调用此函数
@@ -79,5 +86,6 @@ export function apply(ctx: Context, config: Config) {
     // 在这里编写你的定时任务逻辑
     await getSimpleInfoAsync(ctx, config)
   }
+
 }
 
