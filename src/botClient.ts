@@ -1,8 +1,24 @@
 import { Context } from 'koishi'
-import fetch from 'node-fetch'
-import { SimpleInfo } from './koishi'
 import { Config } from '.'
 
+declare module 'koishi' {
+    interface Tables {
+        simpleInfo: SimpleInfo
+    }
+}
+
+// 定义数据库表接口
+export interface SimpleInfo {
+    id: number
+    name: string
+    mode: string
+    rowId: string
+    season: string
+    maxconnections: number
+    connected: number
+    version: string
+    platform: string
+}
 
 // 扩展数据库模型
 export function extendDatabaseModel(ctx: Context) {
@@ -21,7 +37,6 @@ export function extendDatabaseModel(ctx: Context) {
 
 // 数据库操作函数
 export async function createSimpleInfo(ctx: Context, data: SimpleInfo[]) {
-    // ctx.database.drop('simpleInfo')
     try {
         await ctx.database.upsert('simpleInfo', data, 'rowId')
         console.log('SimpleInfo 数据创建成功')
@@ -49,7 +64,7 @@ export async function querySimpleInfo(ctx: Context, query: Partial<SimpleInfo>) 
     }
 }
 
-export async function updateSimpleInfo(ctx: Context, query: Partial<SimpleInfo>, update: Partial<SimpleInfo>) {
+export async function updateSimpleInfo(ctx: Context, query: any, update: any) {
     try {
         const result = await ctx.database.set('simpleInfo', query, update)
         console.log('更新结果:', result)
@@ -71,17 +86,15 @@ export async function removeSimpleInfo(ctx: Context, query: Partial<SimpleInfo>)
     }
 }
 
-
 export async function getSimpleInfoAsync(ctx: Context, config: Config) {
     const result = []
     try {
         for (const region of config.DefaultRgion) {
             for (const platform of config.DefaultPlatform) {
                 const url = `https://lobby-v2-cdn.klei.com/${region}-${platform}.json.gz`
-                const response = await fetch(url)
-                if (response.ok) {
-                    const data = await response.json() as { GET: any[] }
-                    const resultTemp = data.GET.map(item => ({
+                let response = await ctx.http.get(url)
+                if (response && Array.isArray(response.GET)) {
+                    const resultTemp = response.GET.map((item: any) => ({
                         name: item.name || 'N/A',
                         mode: item.intent || 'N/A',
                         rowId: item.__rowId || 'N/A',
@@ -90,8 +103,10 @@ export async function getSimpleInfoAsync(ctx: Context, config: Config) {
                         connected: item.connected || 'N/A',
                         version: item.v || 'N/A',
                         platform: item.platform || 'N/A'
-                    }))
-                    result.push(...resultTemp)
+                    }));
+                    result.push(...resultTemp);
+                } else {
+                    console.error('Invalid data format:', response);
                 }
             }
         }
@@ -114,42 +129,33 @@ export async function getDetailInfoAsync(ctx: Context, config: Config, rowId: st
                     "__rowId": rowId
                 }
             }
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
-            if (response.ok) {
-                const data = await response.json() as { GET: any[] }
-                const resultTemp = data.GET.map(item => {
-                    let players;
-                    try {
-                        players = parsePlayers(item.players); // 使用正则表达式解析 players 字符串
-                    } catch (e) {
-                        console.error('Failed to parse players:', e);
-                        players = [];
-                    }
-                    return {
-                        id: item.__rowId,
-                        name: item.name,
-                        address: item.__addr,
-                        mode: item.mode,
-                        season: item.season,
-                        connected: item.connected,
-                        maxconnections: item.maxconnections,
-                        platform: item.platform,
-                        dedicated: item.dedicated,
-                        players: players,
-                        mods_info: item.mods_info
-                    };
-                });
-                const formattedInfo = resultTemp.map(formatMainInfo).join('\n');
-                console.log('DetailInfo:', formattedInfo)
+            const response = await ctx.http.post(url, payload)
+            const resultTemp = response.GET.map(item => {
+                let players;
+                try {
+                    players = parsePlayers(item.players); // 使用正则表达式解析 players 字符串
+                } catch (e) {
+                    console.error('Failed to parse players:', e);
+                    players = [];
+                }
+                return {
+                    id: item.__rowId,
+                    name: item.name,
+                    address: item.__addr,
+                    mode: item.mode,
+                    season: item.season,
+                    connected: item.connected,
+                    maxconnections: item.maxconnections,
+                    platform: item.platform,
+                    dedicated: item.dedicated,
+                    players: players,
+                    mods_info: item.mods_info
+                };
+            });
+            const formattedInfo = resultTemp.map(formatMainInfo).join('\n');
+            console.log('DetailInfo:', formattedInfo)
 
-                return formattedInfo
-            }
+            return formattedInfo
         } catch (err) {
             console.error('Failed to get DetailInfo:', err)
             return '获取详细信息失败'
@@ -242,7 +248,7 @@ function parsePlayers(playersStr: string): any[] {
 }
 
 function formatPlayers(players: any[]): string {
-    return players.map((player, index) => 
+    return players.map((player, index) =>
         `${index + 1}. ${player.name},(${translatePrefab(player.prefab)}))`
     ).join('\n');
 }
@@ -253,7 +259,7 @@ function formatMods(modsInfo: any[]): string {
     for (let i = 0; i < modsInfo.length; i += 5) {
         formattedMods.push(
             // `ID: ${modsInfo[i]}, 名称: ${modsInfo[i + 1]}, 版本: ${modsInfo[i + 2]}, 启用: ${modsInfo[i + 4]}`
-            `${counter}. 名称: ${modsInfo[i + 1]}`
+            `${counter}.${modsInfo[i + 1]}`
         );
         counter++;
     }
@@ -277,12 +283,12 @@ function formatMainInfo(data: any): string {
 
 export async function getbyname(ctx: Context, name: string) {
     const result = await querySimpleInfo(ctx, { name })
-    return result
+    return formatResults(result)
 }
 
 function checkNaN(value: number): number {
     return isNaN(value) ? 0 : value;
-  }
+}
 
 export function formatResults(results: SimpleInfo[]) {
     return results.map(result => `服务器名称: ${result.name},\n模式: ${translateMode(result.mode)},\n连接数: ${checkNaN(result.connected)}/${result.maxconnections},\n服务器ID: ${result.rowId}`).join('\n')
