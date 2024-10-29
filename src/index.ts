@@ -19,7 +19,7 @@ export interface Config {
 
 export const Config: Schema<Config> = Schema.object({
   Authority: Schema.number().default(1).description('权限等级'),
-  Interval: Schema.number().default(60000).description('任务间隔时间（毫秒）'),
+  Interval: Schema.number().default(120000).description('任务间隔时间（毫秒）'),
   Token: Schema.string().description('API Token').required(),
   DefaultRgion: Schema.array(Schema.union([
     Schema.const('ap-east-1').description('ap-east-1'),
