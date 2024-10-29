@@ -33,13 +33,14 @@ export function extendDatabaseModel(ctx: Context) {
         version: 'string',
         platform: 'string',
     })
+    console.log('数据创建成功')
 }
 
 // 数据库操作函数
 export async function createSimpleInfo(ctx: Context, data: SimpleInfo[]) {
     try {
         await ctx.database.upsert('simpleInfo', data, 'rowId')
-        console.log('SimpleInfo 数据创建成功')
+        console.log('SimpleInfo 数据更新成功')
     } catch (err) {
         console.error('创建 SimpleInfo 数据失败:', err)
     }
@@ -56,7 +57,6 @@ export async function querySimpleInfo(ctx: Context, query: Partial<SimpleInfo>) 
         const combinedQuery = conditions.length > 1 ? { $and: conditions } : conditions[0];
 
         const results = await ctx.database.get('simpleInfo', combinedQuery);
-        // console.log('查询结果:', results);
         return results;
     } catch (err) {
         console.error('查询 SimpleInfo 数据失败:', err);
@@ -64,27 +64,6 @@ export async function querySimpleInfo(ctx: Context, query: Partial<SimpleInfo>) 
     }
 }
 
-export async function updateSimpleInfo(ctx: Context, query: any, update: any) {
-    try {
-        const result = await ctx.database.set('simpleInfo', query, update)
-        console.log('更新结果:', result)
-        return result
-    } catch (err) {
-        console.error('更新 SimpleInfo 数据失败:', err)
-        return null
-    }
-}
-
-export async function removeSimpleInfo(ctx: Context, query: Partial<SimpleInfo>) {
-    try {
-        const result = await ctx.database.remove('simpleInfo', query)
-        console.log('删除结果:', result)
-        return result
-    } catch (err) {
-        console.error('删除 SimpleInfo 数据失败:', err)
-        return null
-    }
-}
 
 export async function getSimpleInfoAsync(ctx: Context, config: Config) {
     const result = []
@@ -153,7 +132,6 @@ export async function getDetailInfoAsync(ctx: Context, config: Config, rowId: st
                 };
             });
             const formattedInfo = resultTemp.map(formatMainInfo).join('\n');
-            console.log('DetailInfo:', formattedInfo)
 
             return formattedInfo
         } catch (err) {

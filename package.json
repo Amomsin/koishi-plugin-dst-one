@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-dst-one",
   "description": "饥荒服务器信息查询",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -21,12 +21,6 @@
   "peerDependencies": {
     "koishi": "^4.18.0"
   },
-  "dependencies": {
-    "node-fetch": "^2.7.0"
-  },
-  "devDependencies": {
-    "node-fetch": "^2.7.0"
-  },
   "koishi": {
     "preview": true,
     "description": {
@@ -38,7 +32,6 @@
       ]
     }
   },
-  "type": "module",
   "scripts": {
     "build": "tsc"
   }

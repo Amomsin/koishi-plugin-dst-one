@@ -31,8 +31,8 @@ export const Config: Schema<Config> = Schema.object({
     Schema.const('Steam').description('Steam'),
     Schema.const('Rail').description('WeGame'),
   ])).role('table').default(["Steam", "Rail"]).description('默认平台'),
-  Instruction_Name: Schema.array(Schema.string()).role('table').default(['\/查房', 's-simple']).description('指令名称'),
-  Instruction_id: Schema.array(Schema.string()).role('table').default(['\/信息']).description('指令ID'),
+  Instruction_Name: Schema.array(Schema.string()).default(['\/查房', 's-simple']).description('指令名称').role('table'),
+  Instruction_id: Schema.array(Schema.string()).default(['\/信息']).description('指令ID').role('table'),
 })
 
 export function apply(ctx: Context, config: Config) {
@@ -65,7 +65,6 @@ export function apply(ctx: Context, config: Config) {
   ctx.command('s-detail [name]', "查询饥荒联机单个服务器详细信息", { authority: config.Authority })
     .alias(name.replace('\\/', ''))
     .action(async (Session, name) => {
-      console.log('index:', name)
       try {
         const send = await getDetailInfoAsync(ctx, config, name)
         return send
@@ -79,7 +78,6 @@ export function apply(ctx: Context, config: Config) {
   async function someFunction() {
     // 在这里编写你的定时任务逻辑
     await getSimpleInfoAsync(ctx, config)
-    console.log('定时任务执行成功')
   }
 }
 
